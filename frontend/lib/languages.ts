@@ -1,18 +1,88 @@
 export const LANGUAGE_CHOICES = {
-    javascript: "18.15.0",
-    typescript: "5.0.3",
-    python: "3.10.0",
-     java: "15.0.2",
-    csharp: "6.12.0",
-    php: "8.2.3",
-}
+  python: "Python 3.14",
+  c: "GCC 15",
+  cpp: "G++ 15",
+  java: "OpenJDK 25",
+  csharp: ".NET C# 9",
+  fsharp: ".NET F# 9",
+  php: "PHP 8.5",
+  ruby: "Ruby 4.0",
+  haskell: "Haskell 9.12",
+  go: "Go 1.26",
+  rust: "Rust 1.93",
+  typescript: "TypeScript (Deno)",
+};
 
 export const CODE_SNIPPETS = {
-    javascript: `\nfunction greet(name) {\n\tconsole.log("Hello, " + name + "!");\n}\n\ngreet("Alex");\n`,
-    typescript: `\ntype Params = {\n\tname: string;\n}\n\nfunction greet(data: Params) {\n\tconsole.log("Hello, " + data.name + "!");\n}\n\ngreet({ name: "Alex" });\n`,
-    python: `\ndef greet(name):\n\tprint("Hello, " + name + "!")\n\ngreet("Alex")\n`,
-    java: `\npublic class HelloWorld {\n\tpublic static void main(String[] args) {\n\t\tSystem.out.println("Hello World");\n\t}\n}\n`,
-    csharp:
-      'using System;\n\nnamespace HelloWorld\n{\n\tclass Hello { \n\t\tstatic void Main(string[] args) {\n\t\t\tConsole.WriteLine("Hello World in C#");\n\t\t}\n\t}\n}\n',
-    php: "<?php\n\n$name = 'Alex';\necho $name;\n",
-  };
+  python: `def greet(name):
+    print("Hello, " + name)
+
+greet("Alex")
+`,
+
+  c: `#include <stdio.h>
+
+int main() {
+    printf("Hello World\\n");
+    return 0;
+}
+`,
+
+  cpp: `#include <iostream>
+
+int main() {
+    std::cout << "Hello World" << std::endl;
+    return 0;
+}
+`,
+
+  java: `public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello World");
+    }
+}
+`,
+
+  csharp: `using System;
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Hello World");
+    }
+}
+`,
+
+  fsharp: `printfn "Hello World"`,
+
+  php: `<?php
+
+echo "Hello World";
+`,
+
+  ruby: `puts "Hello World"`,
+
+  haskell: `main = putStrLn "Hello World"`,
+
+  go: `package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello World")
+}
+`,
+
+  rust: `fn main() {
+    println!("Hello World");
+}
+`,
+
+  typescript: `function greet(name: string) {
+    console.log("Hello, " + name);
+}
+
+greet("Alex");
+`,
+};

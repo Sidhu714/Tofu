@@ -12,7 +12,7 @@ export default function TheEditorComponent(){
 
     const editorRef = useRef();
     const [value,setValue] = useState<string | undefined>("");
-    const [language,setLanguage] = useState("javascript");
+    const [language, setLanguage] = useState("python");
     const { socket, isConnected, sendMessage } = useWebsocket();
 
     useEffect(() =>{
