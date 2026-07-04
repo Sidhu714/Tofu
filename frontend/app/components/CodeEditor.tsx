@@ -20,7 +20,7 @@ export default function TheEditorComponent() {
     const Editor = dynamic(
         () => import("@monaco-editor/react").then((m) => m.Editor),
         { ssr: false }
-        );
+    );
 
     useEffect(() => {
         if (socket) {
@@ -79,9 +79,8 @@ export default function TheEditorComponent() {
 
                 <div className="flex items-center gap-2 rounded-full border border-[#232328] bg-[#131316] px-3 py-1.5">
                     <span
-                        className={`h-2 w-2 rounded-full ${
-                            isConnected ? "bg-[#34D8A6] animate-pulse" : "bg-[#616169]"
-                        }`}
+                        className={`h-2 w-2 rounded-full ${isConnected ? "bg-[#34D8A6] animate-pulse" : "bg-[#616169]"
+                            }`}
                     />
                     <span className="text-xs font-medium text-[#9A9AA5]">
                         {isConnected ? "Live · synced" : "Offline"}
@@ -94,33 +93,36 @@ export default function TheEditorComponent() {
                 <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
 
                     {/* Editor panel */}
-                    <section className="flex flex-col overflow-hidden rounded-xl border border-[#232328] bg-[#131316]">
+                    <section className="flex flex-col overflow-visible rounded-xl border border-[#232328] bg-[#131316]">
                         <div className="flex items-center justify-between border-b border-[#1F1F24] bg-[#17171B] px-4 py-2.5">
                             <span className="text-xs font-semibold uppercase tracking-wider text-[#9A9AA5]">
                                 Editor
                             </span>
                             <LanguageSelector language={language} onSelect={onSelect} />
                         </div>
-                        <Editor
-                            height="82vh"
-                            width="100%"
-                            language={language}
-                            defaultValue={(CODE_SNIPPETS as CODE_SNIPPETS)[language] ?? ""}
-                            theme="vs-dark"
-                            value={value}
-                            onChange={onChange}
-                            onMount={onMount}
-                            options={{
-                                fontSize: 14,
-                                fontFamily: "JetBrains Mono, monospace",
-                                minimap: { enabled: false },
-                                padding: { top: 16 },
-                                scrollBeyondLastLine: false,
-                            }}
-                        />
+
+                        <div className="overflow-hidden rounded-b-xl">
+                            <Editor
+                                height="82vh"
+                                width="100%"
+                                language={language}
+                                defaultValue={(CODE_SNIPPETS as CODE_SNIPPETS)[language] ?? ""}
+                                theme="vs-dark"
+                                value={value}
+                                onChange={onChange}
+                                onMount={onMount}
+                                options={{
+                                    fontSize: 14,
+                                    fontFamily: "JetBrains Mono, monospace",
+                                    minimap: { enabled: false },
+                                    padding: { top: 16 },
+                                    scrollBeyondLastLine: false,
+                                }}
+                            />
+                        </div>
                     </section>
 
-                    /* Output panel */
+
                     <section className="flex flex-col overflow-hidden rounded-xl border border-[#232328] bg-[#131316]">
                         <Output editorRef={editorRef} language={language} />
                     </section>
