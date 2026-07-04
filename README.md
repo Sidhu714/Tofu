@@ -1,4 +1,4 @@
-# CodeRoom
+# Tofu
 
 A real-time collaborative code editor. Multiple people can join the same session, write code together in a Monaco-powered editor, switch languages, and run code — with every change and every result synced live across all connected clients over WebSockets.
 
@@ -54,7 +54,7 @@ A real-time collaborative code editor. Multiple people can join the same session
 
 ```bash
 git clone <your-repo-url>
-cd coderoom
+cd TOFU
 npm install
 ```
 
