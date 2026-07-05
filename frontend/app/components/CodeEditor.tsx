@@ -10,27 +10,40 @@ import Output from "./Output"
 import { useWebsocket } from "@/hooks/useWebsocket"
 import dynamic from "next/dynamic"
 
-export default function TheEditorComponent() {
-
-    const editorRef = useRef();
-    const [value, setValue] = useState<string | undefined>("");
-    const [language, setLanguage] = useState("python");
-    const { socket, isConnected, sendMessage } = useWebsocket();
-
-    const Editor = dynamic(
+const Editor = dynamic(
         () => import("@monaco-editor/react").then((m) => m.Editor),
         { ssr: false }
     );
 
+
+export default function TheEditorComponent() {
+
+    const editorRef = useRef();
+
+    const [editorState, setEditorState] = useState({
+        value: "",  
+        language: "python",
+    });
+
+    
+    const { socket, isConnected, sendMessage } = useWebsocket();
+
+    
     useEffect(() => {
         if (socket) {
             socket.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'language_change') {
-                    setLanguage(data.language);
-                    setValue(data.code);
+                    setEditorState({
+                        language : data.language,
+                        value : data.code
+                    })
+                    
                 } else if (data.type === 'code_change') {
-                    setValue(data.code);
+                    setEditorState((prev) => ({
+                        ...prev,
+                        value : data.code
+                    }))
                 }
             };
         }
@@ -42,9 +55,12 @@ export default function TheEditorComponent() {
     }
 
     const onSelect = (language: string) => {
-        setLanguage(language);
+        
         const newValue = (CODE_SNIPPETS as CODE_SNIPPETS)[language] ?? "";
-        setValue(newValue);
+        setEditorState({
+            language,
+            value : newValue
+        })
         if (isConnected) {
             sendMessage({
                 type: 'language_change',
@@ -55,7 +71,10 @@ export default function TheEditorComponent() {
     }
 
     const onChange = (newValue: string | undefined) => {
-        setValue(newValue);
+        setEditorState((prev) => ({
+            ...prev,
+            value : newValue ?? ""
+        }))
         if (isConnected) {
             sendMessage({
                 type: 'code_change',
@@ -98,17 +117,17 @@ export default function TheEditorComponent() {
                             <span className="text-xs font-semibold uppercase tracking-wider text-[#9A9AA5]">
                                 Editor
                             </span>
-                            <LanguageSelector language={language} onSelect={onSelect} />
+                            <LanguageSelector language={editorState['language']} onSelect={onSelect} />
                         </div>
 
                         <div className="overflow-hidden rounded-b-xl">
                             <Editor
                                 height="82vh"
                                 width="100%"
-                                language={language}
-                                defaultValue={(CODE_SNIPPETS as CODE_SNIPPETS)[language] ?? ""}
+                                language={editorState['language']}
+                                defaultValue={(CODE_SNIPPETS as CODE_SNIPPETS)[editorState['language']] ?? ""}
                                 theme="vs-dark"
-                                value={value}
+                                value={editorState['value']}
                                 onChange={onChange}
                                 onMount={onMount}
                                 options={{
@@ -124,7 +143,7 @@ export default function TheEditorComponent() {
 
 
                     <section className="flex flex-col overflow-hidden rounded-xl border border-[#232328] bg-[#131316]">
-                        <Output editorRef={editorRef} language={language} />
+                        <Output editorRef={editorRef} language={editorState['language']} />
                     </section>
 
                 </div>
