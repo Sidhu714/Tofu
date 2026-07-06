@@ -15,8 +15,11 @@ const Editor = dynamic(
         { ssr: false }
     );
 
+type Params = {
+    roomId  : string
+}    
 
-export default function TheEditorComponent() {
+export default function TheEditorComponent( { roomId } : Params) {
 
     const editorRef = useRef();
 
@@ -26,7 +29,7 @@ export default function TheEditorComponent() {
     });
 
     
-    const { socket, isConnected, sendMessage } = useWebsocket();
+    const { socket, isConnected, sendMessage } = useWebsocket(roomId);
 
     
     useEffect(() => {

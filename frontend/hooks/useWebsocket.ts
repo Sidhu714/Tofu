@@ -6,13 +6,15 @@ interface WebSocketMessage{
     [key : string] : any
 }
 
-export function useWebsocket(){
+export function useWebsocket(roomId : string){
     
     const [socket,setSocket] = useState<WebSocket | null>(null);
     const [isConnected,setIsConnected] = useState(false);
 
     useEffect(() =>{
-        const ws = new WebSocket(process.env.NEXT_PUBLIC_WEBSOCKET_URL!);
+        const ws = new WebSocket(
+          `${process.env.NEXT_PUBLIC_WEBSOCKET_URL!}/${roomId}`
+        );
 
         ws.onopen = () =>{
             console.log('Connected to WebSocket server');
