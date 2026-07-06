@@ -111,6 +111,4 @@ The app will be available at `http://localhost:3000`.
 - **Run button does nothing / errors out** — check `EXECUTE_API_URL` / `EXECUTE_API_KEY` are set correctly and that the execution service is reachable.
 - **Dev server memory grows over time** — make sure you're on a version of `useWebsocket.ts` that always closes the socket in its cleanup function (`ws.close()` unconditionally, not gated on `readyState === OPEN`), otherwise sockets can leak across Fast Refresh/Strict Mode remounts.
 
-## License
 
-MIT (or update to whatever you're using).
