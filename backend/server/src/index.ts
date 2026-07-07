@@ -2,8 +2,15 @@ import WebSocket, { WebSocketServer } from "ws";
 
 const wss = new WebSocketServer({ port: 8000 });
 
-wss.on("connection", (ws: WebSocket) => {
+const rooms = new Map<string, Set<WebSocket>>();
+
+
+wss.on("connection", (ws: WebSocket, request) => {
   console.log("A client connected");
+  
+  const roomid = request.url?.slice(1);
+
+  console.log(roomid)
 
   ws.on("message", (message: WebSocket.RawData) => {
     const data = JSON.parse(message.toString());
