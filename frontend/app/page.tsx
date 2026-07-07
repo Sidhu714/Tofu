@@ -74,7 +74,7 @@ export default function Home() {
 
               <button
                 onClick={handleGenerate}
-                className="w-full rounded-md bg-white text-black  px-4 py-3 text-white hover:bg-white transition"
+                className="w-full rounded-md bg-white text-black  px-4 py-3  hover:bg-white transition"
               >
                 Generate
               </button>
@@ -91,7 +91,7 @@ export default function Home() {
                     </span>
 
                     <button
-                    className="w-full rounded-md bg-white text-black px-4 py-3 text-white hover:bg-white transition mt-4"
+                    className="w-full rounded-md bg-white text-black px-4 py-3  hover:bg-white transition mt-4"
                     onClick={handleRedirect}
                     >
                       Redirect

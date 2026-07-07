@@ -146,7 +146,7 @@ export default function TheEditorComponent( { roomId } : Params) {
 
 
                     <section className="flex flex-col overflow-hidden rounded-xl border border-[#232328] bg-[#131316]">
-                        <Output editorRef={editorRef} language={editorState['language']} />
+                        <Output editorRef={editorRef} language={editorState['language']} roomId={roomId}/>
                     </section>
 
                 </div>

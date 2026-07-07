@@ -16,15 +16,17 @@ const STATUS_CONFIG: Record<Status, { label: string; color: string }> = {
 export default function Output({
   editorRef,
   language,
+  roomId
 }: {
   editorRef: any;
   language: string;
+  roomId : string;
 }) {
   const [codeOutput, setCodeOutput] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
 
-  const { socket, isConnected, sendMessage } = useWebsocket();
+  const { socket, isConnected, sendMessage } = useWebsocket(roomId);
 
   useEffect(() => {
     if (!socket) return;

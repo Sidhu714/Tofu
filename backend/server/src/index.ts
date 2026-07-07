@@ -7,23 +7,44 @@ const rooms = new Map<string, Set<WebSocket>>();
 
 wss.on("connection", (ws: WebSocket, request) => {
   console.log("A client connected");
-  
+
   const roomid = request.url?.slice(1);
 
-  console.log(roomid)
+  if (!roomid) {
+    ws.close()
+    return
+  }
+
+  if (!rooms.has(roomid)) {
+    rooms.set(roomid, new Set())
+  }
+
+  rooms.get(roomid)?.add(ws)
+
+
+  console.log(`Client joined ${roomid}`);
+
+
 
   ws.on("message", (message: WebSocket.RawData) => {
-    const data = JSON.parse(message.toString());
+    const clients = rooms.get(roomid);
 
-    wss.clients.forEach((client) => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(data));
+    clients?.forEach((client) => {
+
+      if (client !== ws && client?.readyState === WebSocket.OPEN) {
+        client.send(message.toString())
       }
-    });
+    })
   });
 
   ws.on("close", () => {
-    console.error("Client disconnected");
+    const clients = rooms.get(roomid);
+
+    clients?.delete(ws);
+
+    if (clients?.size === 0) {
+      rooms.delete(roomid);
+    }
   });
 });
 
