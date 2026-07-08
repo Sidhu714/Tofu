@@ -8,6 +8,8 @@ const rooms = new Map<string, Set<WebSocket>>();
 wss.on("connection", (ws: WebSocket, request) => {
   console.log("A client connected");
 
+  
+
   const roomid = request.url?.slice(1);
 
   if (!roomid) {
@@ -27,6 +29,8 @@ wss.on("connection", (ws: WebSocket, request) => {
 
 
   ws.on("message", (message: WebSocket.RawData) => {
+
+    
     const clients = rooms.get(roomid);
 
     clients?.forEach((client) => {

@@ -23,10 +23,14 @@ export default function TheEditorComponent( { roomId } : Params) {
 
     const editorRef = useRef();
 
+    
+
     const [editorState, setEditorState] = useState({
         value: "",  
         language: "python",
     });
+
+    
 
     
     const { socket, isConnected, sendMessage } = useWebsocket(roomId);
@@ -51,6 +55,9 @@ export default function TheEditorComponent( { roomId } : Params) {
             };
         }
     }, [socket])
+
+
+    console.log("the editor",editorState)
 
     const onMount = (editor: any) => {
         editorRef.current = editor;

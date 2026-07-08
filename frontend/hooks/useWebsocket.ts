@@ -23,8 +23,18 @@ export function useWebsocket(roomId : string){
             //     status : "success",
             //     isClosable: true
             // })
+
+            
+
+            ws?.send(JSON.stringify({
+              type : "sync",
+              code : "initialcode"
+            }))
+
             setIsConnected(true);
             setSocket(ws);
+
+            
         }
         ws.onclose = () => {
             console.log('Disconnected from WebSocket server');
