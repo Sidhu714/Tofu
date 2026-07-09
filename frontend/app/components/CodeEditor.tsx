@@ -4,60 +4,53 @@
 
 
 import LanguageSelector from "./LanguageSelector"
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { CODE_SNIPPETS } from "@/lib/languages"
 import Output from "./Output"
 import { useWebsocket } from "@/hooks/useWebsocket"
 import dynamic from "next/dynamic"
 
 const Editor = dynamic(
-        () => import("@monaco-editor/react").then((m) => m.Editor),
-        { ssr: false }
-    );
+    () => import("@monaco-editor/react").then((m) => m.Editor),
+    { ssr: false }
+);
 
 type Params = {
-    roomId  : string
-}    
+    roomId: string
+}
 
-export default function TheEditorComponent( { roomId } : Params) {
+export default function TheEditorComponent({ roomId }: Params) {
 
     const editorRef = useRef();
 
-    
-
     const [editorState, setEditorState] = useState({
-        value: "",  
+        value: CODE_SNIPPETS["python"],
         language: "python",
     });
 
-    
-
-    
-    const { socket, isConnected, sendMessage } = useWebsocket(roomId);
-
-    
-    useEffect(() => {
-        if (socket) {
-            socket.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'language_change') {
-                    setEditorState({
-                        language : data.language,
-                        value : data.code
-                    })
-                    
-                } else if (data.type === 'code_change') {
-                    setEditorState((prev) => ({
-                        ...prev,
-                        value : data.code
-                    }))
-                }
-            };
-        }
-    }, [socket])
 
 
-    console.log("the editor",editorState)
+
+    const { isConnected, sendMessage } = useWebsocket({
+        roomId,
+        onMessage: (data) => {
+
+            console.log("the latest data", data)
+
+
+            if (data.type === "language_change") {
+                setEditorState({
+                    language: data.language,
+                    value: data.code,
+                });
+            } else if (data.type === "code_change") {
+                setEditorState((prev) => ({
+                    ...prev,
+                    value: data.code,
+                }));
+            }
+        },
+    });
 
     const onMount = (editor: any) => {
         editorRef.current = editor;
@@ -65,11 +58,11 @@ export default function TheEditorComponent( { roomId } : Params) {
     }
 
     const onSelect = (language: string) => {
-        
+
         const newValue = (CODE_SNIPPETS as CODE_SNIPPETS)[language] ?? "";
         setEditorState({
             language,
-            value : newValue
+            value: newValue
         })
         if (isConnected) {
             sendMessage({
@@ -83,12 +76,12 @@ export default function TheEditorComponent( { roomId } : Params) {
     const onChange = (newValue: string | undefined) => {
         setEditorState((prev) => ({
             ...prev,
-            value : newValue ?? ""
+            value: newValue ?? ""
         }))
         if (isConnected) {
             sendMessage({
                 type: 'code_change',
-                code: newValue
+                code: newValue ?? ""
             });
         }
     }
@@ -105,6 +98,8 @@ export default function TheEditorComponent( { roomId } : Params) {
                         CodeRoom
                     </span>
                 </div>
+
+
 
                 <div className="flex items-center gap-2 rounded-full border border-[#232328] bg-[#131316] px-3 py-1.5">
                     <span
@@ -135,7 +130,6 @@ export default function TheEditorComponent( { roomId } : Params) {
                                 height="82vh"
                                 width="100%"
                                 language={editorState['language']}
-                                defaultValue={(CODE_SNIPPETS as CODE_SNIPPETS)[editorState['language']] ?? ""}
                                 theme="vs-dark"
                                 value={editorState['value']}
                                 onChange={onChange}
@@ -153,7 +147,7 @@ export default function TheEditorComponent( { roomId } : Params) {
 
 
                     <section className="flex flex-col overflow-hidden rounded-xl border border-[#232328] bg-[#131316]">
-                        <Output editorRef={editorRef} language={editorState['language']} roomId={roomId}/>
+                        <Output editorRef={editorRef} language={editorState['language']} roomId={roomId} />
                     </section>
 
                 </div>
@@ -165,3 +159,4 @@ export default function TheEditorComponent( { roomId } : Params) {
 type CODE_SNIPPETS = {
     [key: string]: string
 }
+

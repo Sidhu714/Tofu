@@ -26,24 +26,16 @@ export default function Output({
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
 
-  const { socket, isConnected, sendMessage } = useWebsocket(roomId);
-
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "output") {
-        setCodeOutput(data.output);
+  const { isConnected, sendMessage } = useWebsocket({
+     roomId,
+      onMessage : (data) => {
+        if(data.type == "output"){
+          setCodeOutput(data.output);
+        }
       }
-    };
+     });
 
-    socket.addEventListener("message", handleMessage);
-
-    return () => {
-      socket.removeEventListener("message", handleMessage);
-    };
-  }, [socket]);
+  
 
   const output = async () => {
     const sourceCode = editorRef.current?.getValue();
