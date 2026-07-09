@@ -2,20 +2,21 @@
 
 
 import TheEditorComponent from "@/app/components/CodeEditor";
+import { WebsocketProvider } from "@/app/context/WebsocketContext";
 
 type Slug = {
-  params : Promise<{ roomId : string}>
+  params: Promise<{ roomId: string }>
 }
 
 
-export default async function TheEditor({ params } : Slug) {
+export default async function TheEditor({ params }: Slug) {
   const { roomId } = await params;
 
-  
+
   return (
-    <>
-      <TheEditorComponent roomId={roomId} />
-    </>
+    <WebsocketProvider roomId={roomId}>
+      <TheEditorComponent  />
+    </WebsocketProvider>
 
 
   );

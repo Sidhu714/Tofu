@@ -9,17 +9,16 @@ import { CODE_SNIPPETS } from "@/lib/languages"
 import Output from "./Output"
 import { useWebsocket } from "@/hooks/useWebsocket"
 import dynamic from "next/dynamic"
+import { useWebsocketContext } from "../context/WebsocketContext"
 
 const Editor = dynamic(
     () => import("@monaco-editor/react").then((m) => m.Editor),
     { ssr: false }
 );
 
-type Params = {
-    roomId: string
-}
 
-export default function TheEditorComponent({ roomId }: Params) {
+
+export default function TheEditorComponent() {
 
     const editorRef = useRef();
 
@@ -31,26 +30,7 @@ export default function TheEditorComponent({ roomId }: Params) {
 
 
 
-    const { isConnected, sendMessage } = useWebsocket({
-        roomId,
-        onMessage: (data) => {
-
-            console.log("the latest data", data)
-
-
-            if (data.type === "language_change") {
-                setEditorState({
-                    language: data.language,
-                    value: data.code,
-                });
-            } else if (data.type === "code_change") {
-                setEditorState((prev) => ({
-                    ...prev,
-                    value: data.code,
-                }));
-            }
-        },
-    });
+    const {isConnected,sendMessage} = useWebsocketContext();
 
     const onMount = (editor: any) => {
         editorRef.current = editor;
@@ -147,7 +127,7 @@ export default function TheEditorComponent({ roomId }: Params) {
 
 
                     <section className="flex flex-col overflow-hidden rounded-xl border border-[#232328] bg-[#131316]">
-                        <Output editorRef={editorRef} language={editorState['language']} roomId={roomId} />
+                        <Output editorRef={editorRef} language={editorState['language']}  />
                     </section>
 
                 </div>

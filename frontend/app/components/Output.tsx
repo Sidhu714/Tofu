@@ -2,7 +2,7 @@
 
 import { executeCode } from "@/lib/api";
 import { useEffect, useState } from "react";
-import { useWebsocket } from "@/hooks/useWebsocket";
+import { useWebsocketContext } from "../context/WebsocketContext";
 
 type Status = "idle" | "running" | "success" | "error";
 
@@ -16,26 +16,17 @@ const STATUS_CONFIG: Record<Status, { label: string; color: string }> = {
 export default function Output({
   editorRef,
   language,
-  roomId
 }: {
   editorRef: any;
   language: string;
-  roomId : string;
 }) {
   const [codeOutput, setCodeOutput] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
 
-  const { isConnected, sendMessage } = useWebsocket({
-     roomId,
-      onMessage : (data) => {
-        if(data.type == "output"){
-          setCodeOutput(data.output);
-        }
-      }
-     });
+  const { isConnected, sendMessage } = useWebsocketContext();
 
-  
+
 
   const output = async () => {
     const sourceCode = editorRef.current?.getValue();
