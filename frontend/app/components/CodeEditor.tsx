@@ -7,7 +7,6 @@ import LanguageSelector from "./LanguageSelector"
 import { useRef, useState } from "react"
 import { CODE_SNIPPETS } from "@/lib/languages"
 import Output from "./Output"
-import { useWebsocket } from "@/hooks/useWebsocket"
 import dynamic from "next/dynamic"
 import { useWebsocketContext } from "../context/WebsocketContext"
 
@@ -30,7 +29,7 @@ export default function TheEditorComponent() {
 
 
 
-    const {isConnected,sendMessage} = useWebsocketContext();
+    const {isConnected,sendMessage,subscribe} = useWebsocketContext();
 
     const onMount = (editor: any) => {
         editorRef.current = editor;

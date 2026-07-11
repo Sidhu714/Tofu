@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext } from "react"
+import { createContext, useCallback, useContext, useRef } from "react"
 import { useWebsocket } from "@/hooks/useWebsocket";
 
 
@@ -20,10 +20,16 @@ type WebSocketMessage =
         output: string[];
     }
 
+type MessageHandler = (message: WebSocketMessage) => void
+
 
 type WebsocketContextType = {
     isConnected: boolean,
-    sendMessage: (message: WebSocketMessage) => void
+    sendMessage: (message: WebSocketMessage) => void,
+    subscribe: (
+        type: WebSocketMessage["type"],
+        handler: MessageHandler
+    ) => () => void
 }
 
 
@@ -37,17 +43,49 @@ export function WebsocketProvider({
     roomId: string;
     children: React.ReactNode
 }) {
+
+
+    const listeners = useRef(
+        new Map<WebSocketMessage["type"], Set<MessageHandler>>()
+    );
+
+
     const { isConnected, sendMessage } = useWebsocket({
         roomId,
         onMessage: (data) => {
-            console.log("Provider received:", data);
+            const handlers = listeners.current.get(data.type);
+
+            handlers?.forEach(handler => handler(data))
         }
     })
+
+
+
+
+    const subscribe = useCallback((type: WebSocketMessage["type"], handler: MessageHandler) => {
+        if (!listeners.current.get(type)) {
+            listeners.current.set(type, new Set())
+        }
+
+        listeners.current.get(type)?.add(handler);
+
+        //unsubscribe
+
+        return () => {
+            listeners.current.get(type)?.delete(handler);
+
+            if (listeners.current.get(type)?.size === 0) {
+                listeners.current.delete(type)
+            }
+        }
+    }, [])
+
+
 
     return (
         <WebsocketContext.Provider
             value={{
-                isConnected, sendMessage
+                isConnected, sendMessage, subscribe
             }}
         >
             {children}
