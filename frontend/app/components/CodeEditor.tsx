@@ -4,11 +4,12 @@
 
 
 import LanguageSelector from "./LanguageSelector"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CODE_SNIPPETS } from "@/lib/languages"
 import Output from "./Output"
 import dynamic from "next/dynamic"
 import { useWebsocketContext } from "../context/WebsocketContext"
+import { subscribe } from "diagnostics_channel"
 
 const Editor = dynamic(
     () => import("@monaco-editor/react").then((m) => m.Editor),
@@ -29,12 +30,15 @@ export default function TheEditorComponent() {
 
 
 
-    const {isConnected,sendMessage,subscribe} = useWebsocketContext();
+    const { isConnected, sendMessage, subscribe } = useWebsocketContext();
 
     const onMount = (editor: any) => {
         editorRef.current = editor;
         editor.focus();
     }
+
+
+
 
     const onSelect = (language: string) => {
 
@@ -64,6 +68,38 @@ export default function TheEditorComponent() {
             });
         }
     }
+
+
+    useEffect(() => {
+        const unsubscribeCodeChange = subscribe(
+            "code_change",
+            (data) => {
+                if(data.type === "code_change"){
+                    setEditorState({
+                        "language" : data.type,
+                        "value" : data.code
+                    })
+                }
+            }
+        )
+
+        const unsubscribeLanguageChange = subscribe(
+            "language_change",
+            (data) => {
+                if(data.type === "language_change"){
+                    setEditorState({
+                        "language" : data.language,
+                        "value" : data.code
+                    })
+                }
+            }
+        )
+
+        return () => {
+            unsubscribeCodeChange(),
+            unsubscribeLanguageChange()
+        }
+    },[subscribe])
 
     return (
         <div className="min-h-screen bg-[#0A0A0C] text-[#F4F4F6]">
@@ -126,7 +162,7 @@ export default function TheEditorComponent() {
 
 
                     <section className="flex flex-col overflow-hidden rounded-xl border border-[#232328] bg-[#131316]">
-                        <Output editorRef={editorRef} language={editorState['language']}  />
+                        <Output editorRef={editorRef} language={editorState['language']} />
                     </section>
 
                 </div>

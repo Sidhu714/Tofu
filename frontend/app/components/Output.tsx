@@ -1,7 +1,7 @@
 'use client'
 
 import { executeCode } from "@/lib/api";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useWebsocketContext } from "../context/WebsocketContext";
 
 type Status = "idle" | "running" | "success" | "error";
@@ -24,7 +24,7 @@ export default function Output({
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
 
-  const { isConnected, sendMessage } = useWebsocketContext();
+  const { isConnected, sendMessage, subscribe } = useWebsocketContext();
 
 
 
@@ -56,6 +56,27 @@ export default function Output({
       setIsLoading(false);
     }
   };
+
+
+  useEffect(() => {
+    const unsubscribeOutput = subscribe(
+      "output",
+      (data) => {
+        if (data.type === "output") {
+          console.log("Received output", data);
+
+          setCodeOutput(data.output);
+
+          setStatus("success");
+          setIsLoading(false);
+        }
+      }
+    )
+
+    return () => {
+      unsubscribeOutput()
+    }
+  }, [subscribe])
 
   const { label, color } = STATUS_CONFIG[status];
 
