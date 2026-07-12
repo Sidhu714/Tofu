@@ -44,6 +44,7 @@ export function useWebsocket({ roomId, onMessage }: WebsocketParams) {
     console.log("Opening websocket");
 
     ws.onopen = () => {
+      
       console.log('Connected to WebSocket server');
       setIsConnected(true);
       socketRef.current = ws;
