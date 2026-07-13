@@ -1,11 +1,40 @@
 import WebSocket, { WebSocketServer } from "ws";
 import * as Y from "yjs"
-
-
+import * as syncProtocol from "y-protocols/sync"
+import * as awarenessProtocol from "y-protocols/awareness"
+import * as encoding from "lib0/encoding";
+import * as decoding from "lib0/decoding";
 
 const wss = new WebSocketServer({ port: 8000 });
 
-const rooms = new Map<string, Set<WebSocket>>();
+const messageSync = 0;
+const messageAwareness = 1;
+
+type Room = {
+  doc: Y.Doc;
+  awareness: awarenessProtocol.Awareness;
+  clients: Set<WebSocket>;
+
+  // tracks which awareness clientIDs belong to which socket, so we can
+  // clean them up correctly when that socket disconnects
+  connControlledIDs: Map<WebSocket, Set<number>>;
+}
+
+const rooms = new Map<string, Room>();
+
+
+function send(ws: WebSocket, message: Uint8Array) {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(message);
+  }
+}
+
+
+function broadCast(room: Room, message: Uint8Array, exclude?: WebSocket) {
+  room.clients.forEach((client) => {
+    if (client !== exclude) send(client, message);
+  })
+}
 
 
 // CHANGED: one Y.Doc per room instead of a plain {code, language} object
@@ -32,17 +61,59 @@ const DEFAULT_LANGUAGE = "python";
 //       └── language = "python"
 
 
-function getOrCreateDoc(roomid: string): Y.Doc {
-  let doc = roomDocs.get(roomid);
-  if (!doc) {
-    doc = new Y.Doc();
-    const yText = doc.getText("code");
-    const yMeta = doc.getMap("meta");
-    yMeta.set("language", DEFAULT_LANGUAGE);
-    roomDocs.set(roomid, doc)
-  }
+function getOrCreateRoom(roomid: string): Room {
+  let room = rooms.get(roomid);
 
-  return doc;
+  if (room) return room;
+
+
+  let doc = roomDocs.get(roomid);
+
+  doc = new Y.Doc();
+  doc.getText("code");
+  doc.getMap("meta").set("language", DEFAULT_LANGUAGE);
+
+  //It stores temporary things like cursor position,username,selected text,online status
+  // for example Alice  cursor = line 4
+
+  const awareness = new awarenessProtocol.Awareness(doc);
+
+  room = {
+    doc,
+    awareness,
+    clients: new Set(),
+    connControlledIDs: new Map()
+  };
+
+  rooms.set(roomid, room);
+
+  doc.on("update", (update: Uint8Array, origin: WebSocket | null) => {
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, messageSync);
+    syncProtocol.writeUpdate(encoder, update);
+    broadCast(room, encoding.toUint8Array(encoder), origin ?? undefined)
+  })
+
+
+  awareness.on(
+    "update",
+    (
+      { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+      origin: WebSocket | null
+    ) => {
+      const changedIDs = added.concat(updated, removed);
+      const encoder = encoding.createEncoder();
+      encoding.writeVarUint(encoder, messageAwareness);
+      encoding.writeVarUint8Array(
+        encoder,
+        awarenessProtocol.encodeAwarenessUpdate(awareness, changedIDs)
+      );
+      broadCast(room!, encoding.toUint8Array(encoder), origin ?? undefined);
+    }
+  );
+
+  return room;
+
 }
 
 
@@ -78,66 +149,83 @@ wss.on("connection", (ws: WebSocket, request) => {
     return
   }
 
-  if (!rooms.has(roomid)) {
-    rooms.set(roomid, new Set())
-  }
-
-  rooms.get(roomid)?.add(ws)
-
+  const room = getOrCreateRoom(roomid)
+  room.clients.add(ws);
+  room.connControlledIDs.set(ws, new Set());
 
   console.log(`Client joined ${roomid}`);
 
-  const doc = getOrCreateDoc(roomid);
-  const state = getDocState(doc);
+
+  {
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, messageSync);
+    syncProtocol.writeSyncStep1(encoder, room.doc);
+    send(ws, encoding.toUint8Array(encoder));
+  }
+
+  // --- Send current awareness (existing cursors) to the new client ---
+  const states = room.awareness.getStates();
+  if (states.size > 0) {
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, messageAwareness);
+    encoding.writeVarUint8Array(
+      encoder,
+      awarenessProtocol.encodeAwarenessUpdate(room.awareness, Array.from(states.keys()))
+    );
+    send(ws, encoding.toUint8Array(encoder));
+  }
 
 
 
-  ws.send(
-    JSON.stringify({
-      type: "language_change",
-      language: state.language,
-      code: state.code
-    })
-  )
+  ws.on("message", (data: WebSocket.RawData) => {
+    const message = data instanceof ArrayBuffer ? new Uint8Array(data) : (data as Uint8Array);
+    const decoder = decoding.createDecoder(message);
+    const messageType = decoding.readVarUint(decoder);
 
-  ws.on("message", (message: WebSocket.RawData) => {
-
-    const raw = message.toString();
-
-    console.log("the raw message", raw)
-
-    try {
-      const parsed = JSON.parse(raw);
-      const doc = getOrCreateDoc(roomid);
-
-      if (parsed.type === "code_change") {
-        setDocCode(doc, parsed.code)
-      } else if (parsed.type === "language_change") {
-        setDocLanguage(doc, parsed.language, parsed.code)
+    switch (messageType) {
+      case messageSync: {
+        const encoder = encoding.createEncoder();
+        encoding.writeVarUint(encoder, messageSync);
+        // This single call handles SyncStep1, SyncStep2, and Update messages,
+        // applies them to room.doc (tagging `ws` as the origin), and writes
+        // a reply into `encoder` if one is needed (e.g. our SyncStep2 reply
+        // to their SyncStep1).
+        syncProtocol.readSyncMessage(decoder, encoder, room.doc, ws);
+        if (encoding.length(encoder) > 1) {
+          send(ws, encoding.toUint8Array(encoder));
+        }
+        break;
       }
+      case messageAwareness: {
+        const update = decoding.readVarUint8Array(decoder);
+        awarenessProtocol.applyAwarenessUpdate(room.awareness, update, ws);
 
-    } catch (err) {
-      console.error("Invalid message JSON, relaying anyway:", err);
+        const decoder2 = decoding.createDecoder(update);
+        const numClients = decoding.readVarUint(decoder2);
+        const controlled = room.connControlledIDs.get(ws)!;
+        for (let i = 0; i < numClients; i++) {
+          const clientID = decoding.readVarUint(decoder2);
+          controlled.add(clientID);
+          decoding.readVarUint(decoder2);   // clock
+          decoding.readVarString(decoder2); // state JSON — read and discard
+        }
+        break;
+      }
     }
-
-    const clients = rooms.get(roomid);
-
-    clients?.forEach((client) => {
-
-      if (client !== ws && client?.readyState === WebSocket.OPEN) {
-        client.send(message.toString())
-      }
-    })
   });
 
   ws.on("close", () => {
-    const clients = rooms.get(roomid);
+    room.clients.delete(ws);
 
-    clients?.delete(ws);
+    // Remove any awareness state (cursor) this client owned
+    const controlled = room.connControlledIDs.get(ws);
+    if (controlled) {
+      awarenessProtocol.removeAwarenessStates(room.awareness, Array.from(controlled), null);
+    }
+    room.connControlledIDs.delete(ws);
 
-    if (clients?.size === 0) {
+    if (room.clients.size === 0) {
       rooms.delete(roomid);
-      roomDocs.delete(roomid)
     }
   });
 });
