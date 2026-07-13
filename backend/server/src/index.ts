@@ -1,15 +1,72 @@
 import WebSocket, { WebSocketServer } from "ws";
+import * as Y from "yjs"
+
+
 
 const wss = new WebSocketServer({ port: 8000 });
 
 const rooms = new Map<string, Set<WebSocket>>();
 
 
-type RoomState = { code: string; language: string }
-const roomState = new Map<string, RoomState>();
+// CHANGED: one Y.Doc per room instead of a plain {code, language} object
+const roomDocs = new Map<string, Y.Doc>();
+
+const DEFAULT_LANGUAGE = "python";
 
 
-const DEFAULT_STATE: RoomState = { code: "", language: "python" }
+// roomDocs
+
+// "room1" -> Y.Doc
+// "room2" -> Y.Doc
+// "room3" -> Y.Doc
+
+
+
+// this function creates a like 
+
+// roomDocs
+
+// abc
+//  └── Y.Doc
+//       ├── code = ""
+//       └── language = "python"
+
+
+function getOrCreateDoc(roomid: string): Y.Doc {
+  let doc = roomDocs.get(roomid);
+  if (!doc) {
+    doc = new Y.Doc();
+    const yText = doc.getText("code");
+    const yMeta = doc.getMap("meta");
+    yMeta.set("language", DEFAULT_LANGUAGE);
+    roomDocs.set(roomid, doc)
+  }
+
+  return doc;
+}
+
+
+function getDocState(doc: Y.Doc) {
+  return {
+    code: doc.getText("code").toString(),
+    language: (doc.getMap("meta").get("language") as string) ?? DEFAULT_LANGUAGE,
+  }
+}
+
+function setDocCode(doc: Y.Doc, code: string) {
+  const ytext = doc.getText("code");
+  doc.transact(() => {
+    ytext.delete(0, ytext.length);
+    ytext.insert(0, code);
+  })
+}
+
+function setDocLanguage(doc: Y.Doc, language: string, code: string) {
+  doc.transact(() => {
+    doc.getMap("meta").set("language", language);
+    setDocCode(doc, code);
+  });
+}
 
 wss.on("connection", (ws: WebSocket, request) => {
   console.log("A client connected");
@@ -30,7 +87,10 @@ wss.on("connection", (ws: WebSocket, request) => {
 
   console.log(`Client joined ${roomid}`);
 
-  const state = roomState.get(roomid) ?? DEFAULT_STATE;
+  const doc = getOrCreateDoc(roomid);
+  const state = getDocState(doc);
+
+
 
   ws.send(
     JSON.stringify({
@@ -48,12 +108,12 @@ wss.on("connection", (ws: WebSocket, request) => {
 
     try {
       const parsed = JSON.parse(raw);
-      const prev = roomState.get(roomid) ?? DEFAULT_STATE
+      const doc = getOrCreateDoc(roomid);
 
       if (parsed.type === "code_change") {
-        roomState.set(roomid, { ...prev, code: parsed.code })
+        setDocCode(doc, parsed.code)
       } else if (parsed.type === "language_change") {
-        roomState.set(roomid, { code: parsed.code, language: parsed.language })
+        setDocLanguage(doc, parsed.language, parsed.code)
       }
 
     } catch (err) {
@@ -77,7 +137,7 @@ wss.on("connection", (ws: WebSocket, request) => {
 
     if (clients?.size === 0) {
       rooms.delete(roomid);
-      roomState.delete(roomid)
+      roomDocs.delete(roomid)
     }
   });
 });
